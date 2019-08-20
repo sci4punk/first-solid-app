@@ -1,6 +1,6 @@
 const Hierarchy = require('../hierarchy-closure')
 
-describe('hierarchy-closure', function () {
+describe('linear series', function () {
   let t// = Hierarchy.create()
   it('create hierarchy', function () {
     t = Hierarchy.create()
@@ -71,4 +71,89 @@ describe('hierarchy-closure', function () {
   //   console.dir(t)
   //   expect(t.parents.B).toEqual([ 'A' ])
   // })
+})
+
+describe('multiple children', function () {
+  let t = Hierarchy.create()
+  expect(t).toEqual(
+    { add: t.add,
+      roots: {},
+      parents: {},
+      children: {}})
+  it('add doube entry A->{B,C}', function () {
+    t.add('A', 'B')
+    t.add('A', 'C')
+    expect(t).toEqual(
+      { add: t.add,
+        roots: {A: {B: {}, C: {}}},
+        parents: {A: [], B: ['A'], C: ['A']},
+        children: {A: ['B', 'C'], B: [], C: []}})
+  })
+})
+
+describe('repeated insertions', function () {
+  let t = Hierarchy.create()
+  expect(t).toEqual(
+    { add: t.add,
+      roots: {},
+      parents: {},
+      children: {}})
+  it('add doube entry B->C', function () {
+    t.add('B', 'C')
+    t.add('B', 'C')
+    expect(t).toEqual(
+      { add: t.add,
+        roots: {B: {C: {}}},
+        parents: {B: [], C: ['B']},
+        children: {B: ['C'], C: []}})
+  })
+  it('add indirect doube entry C->D, B->D', function () {
+    t.add('C', 'D')
+    t.add('B', 'D')
+    expect(t).toEqual(
+      { add: t.add,
+        roots: {B: {C: {D: {}}}},
+        parents: {B: [], C: ['B'], D: ['C', 'B']},
+        children: {B: ['C', 'D'], C: ['D'], D: []}})
+  })
+  it('add indirect doube entry C->D, B->D', function () {
+    t.add('A', 'D')
+    t.add('A', 'B')
+    expect(t).toEqual(
+      { add: t.add,
+        roots: {A: {B: {C: {D: {}}}, D: {}}},
+        parents: {A: [], B: ['A'], C: ['B', 'A'], D: ['C', 'B', 'A']},
+        children: {A: ['B', 'C', 'D'], B: ['C', 'D'], C: ['D'], D: []}})
+  })
+})
+
+describe('hierarchy walker', function () {
+  let t = Hierarchy.create()
+  // t.add('A', 'AB1')
+  t.add('A', 'AB1')
+  t.add('AB1', 'AB1C1')
+  t.add('AB1C1', 'AB1C1D1')
+  t.add('AB1C1', 'AB1C1D2')
+  t.add('AB1', 'AB1C2')
+  t.add('AB1C2', 'AB1C2D1')
+  t.add('A', 'AB2')
+  t.add('AB2', 'AB2C1')
+  t.add('AB2C1', 'AB2C1D1')
+  it('should visit nodes in order', function () {
+    const seen = []
+    Hierarchy.depthFirst(t.roots, (l, r) => seen.push([l, r]))
+    expect(seen).toEqual(
+      [
+        [ 'AB1C1D1', 'AB1C1' ],
+        [ 'AB1C1D2', 'AB1C1' ],
+        [ 'AB1C1', 'AB1' ],
+        [ 'AB1C2D1', 'AB1C2' ],
+        [ 'AB1C2', 'AB1' ],
+        [ 'AB1', 'A' ],
+        [ 'AB2C1D1', 'AB2C1' ],
+        [ 'AB2C1', 'AB2' ],
+        [ 'AB2', 'A' ]
+      ]
+    )
+  })
 })
